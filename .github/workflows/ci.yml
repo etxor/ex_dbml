@@ -1,0 +1,99 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  MIX_ENV: test
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    # See https://hexdocs.pm/elixir/compatibility-and-deprecations.html#compatibility-between-elixir-and-erlang-otp
+    strategy:
+      matrix:
+        include:
+          - otp: 26.x
+            elixir: 1.16.x
+            lint: lint
+          - otp: 25.x
+            elixir: 1.16.x
+          - otp: 24.x
+            elixir: 1.16.x
+          - otp: 26.x
+            elixir: 1.15.x
+          - otp: 25.x
+            elixir: 1.15.x
+          - otp: 24.x
+            elixir: 1.15.x
+          - otp: 25.x
+            elixir: 1.14.x
+          - otp: 24.x
+            elixir: 1.14.x
+          - otp: 23.x
+            elixir: 1.14.x
+          - otp: 24.x
+            elixir: 1.13.x
+          - otp: 23.x
+            elixir: 1.13.x
+          - otp: 22.x
+            elixir: 1.13.x
+          - otp: 24.x
+            elixir: 1.12.x
+          - otp: 23.x
+            elixir: 1.12.x
+          - otp: 22.x
+            elixir: 1.12.x
+          - otp: 23.x
+            elixir: 1.11.x
+          - otp: 22.x
+            elixir: 1.11.x
+          - otp: 21.x
+            elixir: 1.11.x
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Elixir and Erlang
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ matrix.elixir }}
+          otp-version: ${{ matrix.otp }}
+      - name: Restore deps and _build cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-
+      - name: Audit dependencies
+        run: mix deps.audit --format human
+      - name: Hex audit for retired packages
+        run: mix hex.audit
+      - name: Install dependencies
+        run: mix deps.get
+      - name: Compile deps
+        run: mix deps.compile
+      - name: Check unused dependencies
+        run: mix deps.unlock --check-unused
+        if: ${{ matrix.lint }}
+      - name: Compile lint
+        run: mix compile --warning-as-errors
+        if: ${{ matrix.lint }}
+      - name: Check formatting with mix
+        run: mix format --check-formatted
+        if: ${{ matrix.lint }}
+      - name: Credo's static analysis
+        run: mix credo
+      - name: Dialyzer analysis
+        run: mix dialyzer --format github
+        if: ${{ matrix.lint }}
+      - name: Validate max compilation dependency
+        run: mix xref graph --label compile-connected --fail-above 0
+      - name: Run tests
+        run: mix test
