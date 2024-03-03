@@ -63,18 +63,15 @@ jobs:
           elixir-version: ${{ matrix.elixir }}
           otp-version: ${{ matrix.otp }}
       - name: Restore deps and _build cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
+          key: |
+            ${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-
-      - name: Audit dependencies
-        run: mix deps.audit --format human
-      - name: Hex audit for retired packages
-        run: mix hex.audit
       - name: Install dependencies
         run: mix deps.get
       - name: Compile deps
@@ -82,6 +79,10 @@ jobs:
       - name: Check unused dependencies
         run: mix deps.unlock --check-unused
         if: ${{ matrix.lint }}
+      - name: Audit dependencies
+        run: mix deps.audit --format human
+      - name: Hex audit for retired packages
+        run: mix hex.audit
       - name: Compile lint
         run: mix compile --warning-as-errors
         if: ${{ matrix.lint }}
@@ -90,10 +91,36 @@ jobs:
         if: ${{ matrix.lint }}
       - name: Credo's static analysis
         run: mix credo
+      - name: Restore PLT cache
+        id: plt_cache
+        uses: actions/cache/restore@v3
+        with:
+          key: |
+            plt-${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            plt-${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-
+          path: |
+            priv/plts
+        if: ${{ matrix.lint }}
+      - name: Create PLTs
+        run: mix dialyzer --plt
+        if: ${{ matrix.lint  == 'lint' && steps.plt_cache.outputs.cache-hit != 'true' }}
+      # By default, the GitHub Cache action will only save the cache if all steps in the job succeed,
+      # so we separate the cache restore and save steps in case running dialyzer fails.
+      - name: Save PLT cache
+        id: plt_cache_save
+        uses: actions/cache/save@v3
+        with:
+          key: |
+            plt-${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
+          path: |
+            priv/plts
+        if: ${{ matrix.lint  == 'lint' && steps.plt_cache.outputs.cache-hit != 'true' }}
       - name: Dialyzer analysis
         run: mix dialyzer --format github
         if: ${{ matrix.lint }}
       - name: Validate max compilation dependency
         run: mix xref graph --label compile-connected --fail-above 0
+        if: ${{ matrix.lint }}
       - name: Run tests
         run: mix test
