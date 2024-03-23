@@ -1,8 +1,7 @@
-defmodule ExDbmlTest do
-  use ExUnit.Case
+defmodule ExDbml.ExDbmlTest do
+  @moduledoc false
+  use ExUnit.Case, async: true
   doctest ExDbml
 
-  test "greets the world" do
-    assert ExDbml.hello() == :world
-  end
+  # table that doesn't have an schema by default belongs to public
 end

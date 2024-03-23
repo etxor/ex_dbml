@@ -1,0 +1,56 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run all tests",
+            "type": "shell",
+            "group": "test",
+            "command": "mix test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "clear": true
+            }
+        },
+        {
+            "label": "Run test at cursor",
+            "type": "shell",
+            "group": "test",
+            "command": "mix test ${relativeFile}:${lineNumber}",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "clear": true
+            },
+            "runOptions": {
+                "reevaluateOnRerun": true
+            }
+        },
+        {
+            "label": "Run tests in current file",
+            "type": "shell",
+            "group": "test",
+            "command": "mix test ${relativeFile}",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "clear": true
+            },
+            "runOptions": {
+                "reevaluateOnRerun": true
+            }
+        },
+        {
+            "label": "Rerun last command",
+            "command": "${command:workbench.action.tasks.reRunTask}",
+            "type": "shell",
+            "problemMatcher": [],
+        },
+    ]
+}

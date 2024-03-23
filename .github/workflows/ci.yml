@@ -93,7 +93,7 @@ jobs:
         run: mix credo
       - name: Restore PLT cache
         id: plt_cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           key: |
             plt-${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
@@ -109,7 +109,7 @@ jobs:
       # so we separate the cache restore and save steps in case running dialyzer fails.
       - name: Save PLT cache
         id: plt_cache_save
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           key: |
             plt-${{ runner.os }}-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
